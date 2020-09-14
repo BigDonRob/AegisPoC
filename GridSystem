@@ -1,0 +1,328 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class BattlefieldManager : MonoBehaviour
+{
+    // TEST DATA
+
+    public int ySize = 4;
+    public int xSize = 9;
+
+    // UNIT ARRAYS DATA 
+    [SerializeField] Transform[] Units;
+    [SerializeField] int[] charge;
+    [SerializeField] int[] agility;
+    [SerializeField] string[] unitName;
+    [SerializeField] int[] xPos;
+    [SerializeField] int[] yPos;
+    [SerializeField] int[] cMove;
+    [SerializeField] int[] cMoveBase;
+    [SerializeField] Text[] ctText;
+    [SerializeField] Text[] moveText;
+    [SerializeField] Image[] uiImages;
+
+
+
+
+    public bool activeTurn;
+
+    // Grid and Movement Variables
+    int localX;
+    int localY;
+    int gPos;
+    public string placeToMove;
+    public Transform tempTrans;
+    public GameObject[] tileSet = new GameObject[100];
+    private Vector3[] gridTrans = new Vector3[100];
+    [SerializeField] Canvas canvas;
+    public GameObject tileS;
+    [SerializeField] string currentTurn;
+    bool[] occupied = new bool[100];
+    int occuInt;
+    int curPlay;
+
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        RectTransform screenSize = canvas.GetComponent<RectTransform>();
+        float yScreen = screenSize.rect.height;
+        float xScreen = screenSize.rect.width;
+        Debug.Log(xScreen + "," + yScreen);
+        float yScale = yScreen / ySize / 3 * 2;
+        Debug.Log(yScale);
+        float xScale = xScreen / xSize * 15 / 13;
+        Debug.Log(xScale);
+        RectTransform tempRect = tileSet[0].GetComponent<RectTransform>();
+        tempRect.sizeDelta = new Vector2(xScale, yScale);
+
+        for (int y = 1; y <= ySize; ++y)
+        {
+            int xLoop = xSize;
+            if (y % 2 == 0)
+            { xLoop = xLoop - 1; }
+
+            for (int x = 1; x <= xLoop; ++x)
+            {
+                float xIns = (x - 1) * xScale * 13 / 15 + xScale * 13 / 15 / 2;
+                if (y % 2 == 0)
+                {
+                    xIns = (xIns + xScale * 13 / 15 / 2);
+                }
+                float yIns = ((y - 1) * yScale / 4 * 3) + yScale / 4;
+                GameObject gridSystem = Instantiate(tileS, new Vector3(xIns, yIns, 0), Quaternion.identity, transform);
+                string gridName = x.ToString() + y.ToString();
+                gridSystem.name = gridName;
+                int gridCo = int.Parse(gridName);
+                tileSet[gridCo] = gridSystem;
+                gridTrans[gridCo] = new Vector3(xIns, yIns + yScale * 7 / 12, 0);
+                occupied[gridCo] = false;
+            }
+        }
+        for (int i = 0; i < unitName.Length; i++)
+        {
+            if (Units[i] != null)
+            {
+                tempTrans = Units[i].transform;
+                tempRect = Units[i].GetComponent<RectTransform>();
+                tempRect.sizeDelta = new Vector2(xScale * .75F, yScale * 1.5F);
+                string conv = xPos[i].ToString() + yPos[i].ToString();
+                int conve = int.Parse(conv);
+                tempTrans.position = gridTrans[conve];
+                occupied[conve] = true;
+                cMove[i] = cMoveBase[i];
+                if (i <=2)
+                {
+                    tempRect = uiImages[i].GetComponent<RectTransform>();
+                    tempRect.sizeDelta = new Vector2(yScreen / 3, xScreen / 4);
+                    tempTrans = uiImages[i].transform;
+                    tempTrans.position = new Vector2(xScreen - xScale * (i + 1) * 2 + xScale , yScreen - yScale);
+
+                }
+            }
+            else
+            {
+                Debug.Log("Unit " + i + "Not being used");
+            }
+        }
+    }
+
+    public void Update()
+    {
+        if (activeTurn == false)
+        {
+            for (int i = 0; i < charge.Length; i++)
+                if (charge[i] >= 100)
+                {
+                    activeTurn = true;
+                    currentTurn = unitName[i];
+                    tempTrans = Units[i].transform;
+                    string con = xPos[i].ToString() + yPos[i].ToString();
+                    occuInt = int.Parse(con);
+                    cMove[i] = cMoveBase[i];
+                    curPlay = i;
+                    ctText[i].text = "CT: 100/100";
+                    moveText[curPlay].text = "Moves: " + cMove[curPlay].ToString();
+                    break;
+
+                }
+                else
+                {
+                    charge[i] = charge[i] + agility[i];
+                    if (i <= 2)
+                    {
+                        ctText[i].text = "CT: " + charge[i].ToString("000") + "/100";
+                    }
+                }
+
+
+        }
+    }
+    public void MoveButton()
+    {
+        for (int i = 0; i < unitName.Length; i++)
+        {
+            if (currentTurn == unitName[i])
+            {   
+                localX = xPos[i];
+                localY = yPos[i];
+            }
+        }
+
+        Button onBut;
+        //  Left
+        gPos = (localX - 1) * 10 + localY;
+        if (gPos <= 10)
+        { }
+        else if (gPos >=100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[1] = tileSet[gPos];
+            }
+            else
+            { }
+        }
+        // Right
+        gPos = (localX + 1) * 10 + localY;
+        if (gPos <= 10)
+        { }
+        else if (gPos >= 100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[2] = tileSet[gPos];
+            }
+            else
+            { }
+        }
+        // UpLeft
+        if (localY % 2 == 0)
+        {
+            gPos = (localX * 10) + localY + 1;
+        }
+        else
+        {
+            gPos = ((localX - 1) * 10) + localY + 1;
+        }
+        if (gPos <= 10)
+        { }
+        else if (gPos >= 100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[3] = tileSet[gPos];
+            }
+            else
+            { }
+        }
+        // UpRight
+        if (localY % 2 == 0)
+        {
+            gPos = (localX + 1) * 10 + localY + 1;
+        }
+        else
+        {
+            gPos = localX * 10 + localY + 1;
+        }
+        if (gPos <= 10)
+        { }
+        else if (gPos >= 100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[4] = tileSet[gPos];
+            }
+            else 
+            { }
+        }
+        // DownLeft
+        if (localY % 2 == 0)
+        {
+            gPos = localX * 10 + localY - 1;
+        }
+        else
+        {
+            gPos = (localX - 1) * 10 + localY - 1;
+        }
+        if (gPos <= 10)
+        { }
+        else if (gPos >= 100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[5] = tileSet[gPos];
+            }
+            else
+            { }
+        }
+        // DownRight
+        if (localY % 2 == 0)
+        {
+            gPos = (localX + 1) * 10 + localY - 1;
+        }
+        else
+        {
+            gPos = localX * 10 + localY - 1;
+        }
+        if (gPos <= 10)
+        { }
+        else if (gPos >= 100)
+        { }
+        else if (tileSet[gPos] != null)
+        {
+            if (occupied[gPos] == false)
+            {
+                onBut = tileSet[gPos].GetComponent<Button>();
+                onBut.interactable = true;
+                tileSet[6] = tileSet[gPos];
+            }
+            else
+            { }
+        }
+    }
+    public void MoveTo()
+    {
+        placeToMove = EventSystem.current.currentSelectedGameObject.name;
+        for (var i = 1; i <= 6; i++)
+        {
+            if (tileSet[i] != null)
+            {
+                Button offBut = tileSet[i].GetComponent<Button>();
+                offBut.interactable = false;
+            }
+        }
+        gPos = int.Parse(placeToMove);
+        localY = gPos % 10;
+        localX = gPos / 10;
+        occupied[occuInt] = false;
+        occupied[gPos] = true;
+        occuInt = gPos;
+        tempTrans.position = gridTrans[gPos];
+        xPos[curPlay] = localX;
+        yPos[curPlay] = localY;
+        cMove[curPlay] = cMove[curPlay] - 1;
+        tempTrans = Units[curPlay].transform;
+        moveText[curPlay].text = "Moves: " + cMove[curPlay].ToString();
+
+        if (cMove[curPlay] == 0)
+        {
+            activeTurn = false;
+            charge[curPlay] = charge[curPlay] - 40;
+            if (charge[curPlay] >= 100)
+            {
+                ctText[curPlay].text = "CT: 100/100";
+            }
+            else
+            {
+                ctText[curPlay].text = "CT: " + charge[curPlay].ToString("000") + "/100";
+            }
+        }
+        else
+        { }
+
+    }
+}
